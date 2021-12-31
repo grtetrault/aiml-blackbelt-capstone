@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import constructs
 import aws_cdk as cdk
 from aws_cdk import (
@@ -10,6 +12,17 @@ from aws_cdk import (
 
 
 class DevEnvironmentStack(cdk.Stack):
+    """ 
+    Class definition a development environment consisting of:
+        - A Spark cluster with Python data science packages installed and,
+        - A SageMaker notebook isntance that can interact with the Spark 
+          cluster through the PySpark kernel.
+              
+    Note that stack requires manual deletion of VPC and the cluster's 
+    auto-generated security groups. These security groups are not managed by
+    the stack and hence cannot be automatically deleted.
+    """
+
     def __init__(
         self,
         scope: constructs.Construct,
@@ -28,6 +41,19 @@ class DevEnvironmentStack(cdk.Stack):
         super().__init__(scope, id, **kwargs)
 
         # _____________________________________________________________________
+        #                                                                Assets
+
+        cluster_bootstrap_asset = _s3_assets.Asset(self, 
+            "EmrClusterBootstrapAsset",
+            path="dev_env/bootstrap_scripts/emr_bootstrap.sh"
+        )
+
+        notebook_bootstrap_asset = _s3_assets.Asset(self, 
+            "NotebookBootstrapAsset",
+            path="dev_env/bootstrap_scripts/notebook_bootstrap.sh"
+        )
+
+        # _____________________________________________________________________
         #                                                        VPC and Subnet
         
         vpc = _ec2.Vpc(self, 
@@ -37,22 +63,55 @@ class DevEnvironmentStack(cdk.Stack):
                 _ec2.SubnetConfiguration(
                     name="public", subnet_type=_ec2.SubnetType.PUBLIC
                 )
-            ],
+            ]
         )
 
         subnet = vpc.public_subnets[0]
 
 
         # _____________________________________________________________________
-        #                                                           EMR Cluster
+        #                                                       Security Groups
 
-        # Empty security group to allow for notebook access without changing
-        # default master security group.
+        # Security group to allow Livy interaction between cluster and notebook.
         additional_master_sg = _ec2.SecurityGroup(self, 
             "EmrAdditionalMasterSg",
             vpc=vpc
         )
-        
+
+        notebook_sg = _ec2.SecurityGroup(self, 
+            "NotebookSg",
+            vpc=vpc,
+            allow_all_outbound=True
+        )
+
+        # Inbound security group rules.
+        additional_master_sg.add_ingress_rule(
+            peer=notebook_sg,
+            connection=_ec2.Port.tcp(8998),
+            description="Livy Port"
+        )
+
+        notebook_sg.add_ingress_rule(
+            peer=_ec2.Peer.any_ipv4(), 
+            connection=_ec2.Port.tcp(80)
+        )
+        notebook_sg.add_ingress_rule(
+            peer=_ec2.Peer.any_ipv4(),
+            connection=_ec2.Port.tcp(443)
+        )
+        notebook_sg.add_ingress_rule(
+            peer=_ec2.Peer.any_ipv6(),
+            connection=_ec2.Port.tcp(80)
+        )
+        notebook_sg.add_ingress_rule(
+            peer=_ec2.Peer.any_ipv6(),
+            connection=_ec2.Port.tcp(443)
+        )
+
+        # _____________________________________________________________________
+        #                                                    Roles and Policies
+
+        # TODO: Update EMR policy to V2 and restrict S3 permissions to data bucket.
         # Roles for cluster and isntances.
         emr_service_role = _iam.Role(self,
             "EmrServiceRole",
@@ -64,7 +123,7 @@ class DevEnvironmentStack(cdk.Stack):
             ]
         )
         emr_job_flow_role = _iam.Role(self,
-            "EmrJob_FlowRole",
+            "EmrJobFlowRole",
             assumed_by=_iam.ServicePrincipal("ec2.amazonaws.com"),
             managed_policies=[
                 _iam.ManagedPolicy.from_aws_managed_policy_name(
@@ -76,14 +135,28 @@ class DevEnvironmentStack(cdk.Stack):
             ]
         )
         emr_job_flow_profile = _iam.CfnInstanceProfile(self,
-            "EmrJob_FlowProfile",
+            "EmrJobFlowProfile",
             roles=[emr_job_flow_role.role_name]
         )
 
-        cluster_bootstrap_asset = _s3_assets.Asset(self, 
-            "EmrClusterBootstrapAsset",
-            path="dev_env/bootstrap_scripts/emr_bootstrap.sh"
+        notebook_service_role = _iam.Role(self, 
+            "NotebookServiceRole",
+            assumed_by=_iam.ServicePrincipal("sagemaker.amazonaws.com"),
+            managed_policies=[
+                _iam.ManagedPolicy.from_aws_managed_policy_name(
+                    "AmazonSageMakerFullAccess"
+                ),
+                # Required for script to find master node IP.
+                _iam.ManagedPolicy.from_aws_managed_policy_name(
+                    "AmazonEMRReadOnlyAccessPolicy_v2"
+                )
+            ]
         )
+        notebook_bootstrap_asset.grant_read(notebook_service_role)
+
+
+        # _____________________________________________________________________
+        #                                                           EMR Cluster
 
         cluster = _emr.CfnCluster(self, 
             "EmrCluster",
@@ -164,60 +237,12 @@ class DevEnvironmentStack(cdk.Stack):
         #______________________________________________________________________
         #                                           Sagemaker Notebook Instance
 
-        notebook_sg = _ec2.SecurityGroup(self, 
-            "NotebookSg",
-            vpc=vpc,
-            allow_all_outbound=True
-        )
-        notebook_sg.add_ingress_rule(
-            peer=_ec2.Peer.any_ipv4(), 
-            connection=_ec2.Port.tcp(80)
-        )
-        notebook_sg.add_ingress_rule(
-            peer=_ec2.Peer.any_ipv4(),
-            connection=_ec2.Port.tcp(443)
-        )
-        notebook_sg.add_ingress_rule(
-            peer=_ec2.Peer.any_ipv6(),
-            connection=_ec2.Port.tcp(80)
-        )
-        notebook_sg.add_ingress_rule(
-            peer=_ec2.Peer.any_ipv6(),
-            connection=_ec2.Port.tcp(443)
-        )
-
-        # Add EMR master node security group to notebook instance's.
-        additional_master_sg.add_ingress_rule(
-            peer=notebook_sg,
-            connection=_ec2.Port.tcp(8998),
-            description="Livy Port"
-        )
-
         # code_repository = _sagemaker.CfnCodeRepository(self, "CodeRepository",
         #     code_repository_name=f"{sm_notebook_name}_repository",
         #     git_config=_sagemaker.CfnCodeRepository.GitConfigProperty(
         #         repository_url="repositoryUrl", # TODO enter git repository.
         #     )
         # )
-
-        notebook_service_role = _iam.Role(self, 
-            "NotebookServiceRole",
-            assumed_by=_iam.ServicePrincipal("sagemaker.amazonaws.com"),
-            managed_policies=[
-                _iam.ManagedPolicy.from_aws_managed_policy_name(
-                    "AmazonSageMakerFullAccess"
-                ),
-                _iam.ManagedPolicy.from_aws_managed_policy_name(
-                    "AmazonEMRReadOnlyAccessPolicy_v2"
-                )
-            ]
-        )
-
-        notebook_bootstrap_asset = _s3_assets.Asset(self, 
-            "NotebookBootstrapAsset",
-            path="dev_env/bootstrap_scripts/notebook_bootstrap.sh"
-        )
-        notebook_bootstrap_asset.grant_read(notebook_service_role)
 
         # Configure notebook instance bootstrap script.
         notebook_lifecycle_config = _sagemaker.CfnNotebookInstanceLifecycleConfig(self,
