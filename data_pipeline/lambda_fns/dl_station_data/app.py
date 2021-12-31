@@ -13,12 +13,15 @@ def dl_station_data() -> _t.Dict[str, str]:
 
     s3 = boto3.resource("s3")
 
-    # Make request for table data. Data is returned as a compressed CSVs.
+    # Make request for table data. Data is returned as a fixed-width text file.
     noaa_fqdn = "https://www1.ncdc.noaa.gov"
     response = requests.get(
         f"{noaa_fqdn}/pub/data/ghcn/daily/ghcnd-stations.txt")
 
-    df = pd.read_fwf(io.BytesIO(response.content), header=None)
+    # Infer columns on spacing of all rows. This is not generally recommended,
+    # but the file is known to be small.
+    nrows = response.content.count(b"\n")
+    df = pd.read_fwf(io.BytesIO(response.content), header=None, infer_nrows=nrows)
     data = df.to_csv(header=False, index=False).encode()
 
     # Write zipped data to S3 (GZIP can be read by Spark).
