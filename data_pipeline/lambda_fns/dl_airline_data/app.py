@@ -1,11 +1,15 @@
 import os
 import io
+import time
 import json
 import boto3
 import base64
 import zipfile
 import requests
 import typing as _t
+
+RETRY_COUNT = int(os.environ["RETRY_COUNT"])
+RETRY_HEARTBEAT = int(os.environ["RETRY_HEARTBEAT"])
 
 OUTPUT_BUCKET = os.environ["OUTPUT_BUCKET"]
 OUTPUT_DIR = os.environ["OUTPUT_DIR"]
@@ -32,11 +36,23 @@ def dl_airline_data(year: str, month: str) -> _t.Dict[str, str]:
         "RawDataTable": "T_ONTIME_REPORTING",
         "sqlstr": encoded_query
     }
-    response = requests.post(
-        f"{bts_fqdn}/DownLoad_Table.asp",
-        params=bts_request_params,
-        data=bts_request_data,
-        verify=False)
+    
+    # Retry as server side limits the amount of requests.
+    tries = RETRY_COUNT
+    while True:
+        tries -= 1
+        try:
+            response = requests.post(
+                f"{bts_fqdn}/DownLoad_Table.asp",
+                params=bts_request_params,
+                data=bts_request_data,
+                verify=False)
+            break
+        except requests.exceptions.ConnectionError as e:
+            if tries == 0:
+                raise e
+            else:
+                time.sleep(RETRY_HEARTBEAT)
 
     # Unzip data file from downloaded data.
     archive = zipfile.ZipFile(io.BytesIO(response.content))

@@ -8,7 +8,10 @@ from aws_cdk import (
     aws_ec2 as _ec2,
     aws_lambda as _lambda,
     aws_s3_assets as _s3_assets,
-    aws_sagemaker as _sagemaker)
+    aws_events as _events,
+    aws_events_targets as _targets,
+    aws_stepfunctions as _sfn,
+    aws_stepfunctions_tasks as _tasks)
 
 
 class DataPipelineStack(cdk.Stack):
@@ -45,15 +48,30 @@ class DataPipelineStack(cdk.Stack):
         # _____________________________________________________________________
         #                                                      Lambda Functions
 
+        entrypoint_fn = _lambda.Function(self, 
+            "EntryPointFn",
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            memory_size=512,
+            timeout=cdk.Duration.minutes(1),
+
+            handler="app.lambda_handler",
+            code=_lambda.Code.from_asset("data_pipeline/lambda_fns/entrypoint/"),
+            environment={
+                "MIN_YYYYMM": "201101"
+            }
+        )
+
         dl_airline_data_fn = _lambda.Function(self, 
             "DlAirlineDataFn",
             runtime=_lambda.Runtime.PYTHON_3_7,
             memory_size=1024,
-            timeout=cdk.Duration.minutes(5),
+            timeout=cdk.Duration.minutes(15),
 
             handler="app.lambda_handler",
             code=_lambda.Code.from_asset("data_pipeline/lambda_fns/dl_airline_data/"),
             environment={
+                "RETRY_COUNT": "10",
+                "RETRY_HEARTBEAT": "1",
                 "OUTPUT_BUCKET": dl_output_bucket.bucket_name,
                 "OUTPUT_DIR": "dl_output/airline_data"
             }
@@ -64,7 +82,7 @@ class DataPipelineStack(cdk.Stack):
             "DlWeatherDataFn",
             runtime=_lambda.Runtime.PYTHON_3_7,
             memory_size=1024,
-            timeout=cdk.Duration.minutes(5),
+            timeout=cdk.Duration.minutes(15),
 
             handler="app.lambda_handler",
             code=_lambda.Code.from_asset("data_pipeline/lambda_fns/dl_weather_data/"),
@@ -103,4 +121,72 @@ class DataPipelineStack(cdk.Stack):
 
 
         # _____________________________________________________________________
-        #                                                         Step Function
+        #                                                         State Machine
+
+        # Wrap Lambda functions in state machine task constructs.
+        entrypoint_task = _tasks.LambdaInvoke(self,
+            "EntryPointTask",
+            lambda_function=entrypoint_fn
+        )
+        dl_airline_data_task = _tasks.LambdaInvoke(self,
+            "DlAirlineDataTask",
+            lambda_function=dl_airline_data_fn
+        )
+        dl_weather_data_task = _tasks.LambdaInvoke(self,
+            "DlWeatherDataTask",
+            lambda_function=dl_weather_data_fn
+        )
+        dl_station_data_task = _tasks.LambdaInvoke(self,
+            "DlStationDataTask",
+            lambda_function=dl_station_data_fn
+        )
+
+        # Initiate maps and choice states for executing multiple download 
+        # tasks.
+        airline_data_map = _sfn.Map(self,
+            "AirlineDataMap",
+            items_path=_sfn.JsonPath.string_at("$.Payload.airline_jobs")
+        )
+        airline_data_map.iterator(dl_airline_data_task)
+
+        weather_data_map = _sfn.Map(self,
+            "WeatherDataMap",
+            items_path=_sfn.JsonPath.string_at("$.Payload.weather_jobs")
+        )
+        weather_data_map.iterator(dl_weather_data_task)
+
+        station_data_choice = _sfn.Choice(self,
+            "StationDataChoice"
+        )
+        station_data_choice.when(
+            _sfn.Condition.string_equals("$.Payload.update_station_data", "TRUE"),
+            dl_station_data_task
+        )
+
+        # Execute all downloads in parallel.
+        dl_in_parallel = _sfn.Parallel(self, 
+            "DlInParallel"
+        )
+        dl_in_parallel.branch(airline_data_map)
+        dl_in_parallel.branch(weather_data_map)
+        dl_in_parallel.branch(station_data_choice)
+
+        # Configure state machine.
+        state_machine = _sfn.StateMachine(self,
+            "StateMachine",
+            definition=entrypoint_task.next(dl_in_parallel)
+        )
+
+        # Invoke state machine on the last day of every month at 10PM.
+        invoke_state_machine_rule = _events.Rule(self,
+            "InvokeStateMachineRule",
+            schedule=_events.Schedule.expression("cron(0 20 L * ? *)")
+        )
+        invoke_state_machine_rule.add_target(
+            _targets.SfnStateMachine(
+                state_machine, 
+                input=_events.RuleTargetInput.from_object(
+                    {"data_pull_type": "CURRENT_MONTH"}
+                )
+            )
+        )

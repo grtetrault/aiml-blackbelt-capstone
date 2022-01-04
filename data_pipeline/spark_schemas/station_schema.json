@@ -44,13 +44,19 @@
         },
         {
             "metadata": {},
-            "name": "historical_climatology_network ",
+            "name": "historical_climatology_network",
             "nullable": true,
             "type": "string"
         },
         {
             "metadata": {},
-            "name": "historical_climatology_network ",
+            "name": "historical_climatology_network",
+            "nullable": true,
+            "type": "string"
+        },
+        {
+            "metadata": {},
+            "name": "unspecified_id_part",
             "nullable": true,
             "type": "string"
         }
