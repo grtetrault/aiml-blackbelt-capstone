@@ -36,23 +36,11 @@ def dl_airline_data(year: str, month: str) -> _t.Dict[str, str]:
         "RawDataTable": "T_ONTIME_REPORTING",
         "sqlstr": encoded_query
     }
-    
-    # Retry as server side limits the amount of requests.
-    tries = RETRY_COUNT
-    while True:
-        tries -= 1
-        try:
-            response = requests.post(
-                f"{bts_fqdn}/DownLoad_Table.asp",
-                params=bts_request_params,
-                data=bts_request_data,
-                verify=False)
-            break
-        except requests.exceptions.ConnectionError as e:
-            if tries == 0:
-                raise e
-            else:
-                time.sleep(RETRY_HEARTBEAT)
+    response = requests.post(
+        f"{bts_fqdn}/DownLoad_Table.asp",
+        params=bts_request_params,
+        data=bts_request_data,
+        verify=False)
 
     # Unzip data file from downloaded data.
     archive = zipfile.ZipFile(io.BytesIO(response.content))
@@ -72,7 +60,7 @@ def dl_airline_data(year: str, month: str) -> _t.Dict[str, str]:
 
     return {
         "status": "SUCCESS",
-        "ouput_key": output_key,
+        "ouput_key": output_key
     }
 
 

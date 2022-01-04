@@ -33,7 +33,7 @@ class DataPipelineStack(cdk.Stack):
 
         airline_schema_asset = _s3_assets.Asset(self, 
             "AirlineSchemaAsset",
-            path="data_pipeline/spark_schemas/airline_schema.json"
+            path="data_pipeline/lambda_fns/dl_airline_data/airline_schema.json"
         )
 
 
@@ -64,7 +64,7 @@ class DataPipelineStack(cdk.Stack):
         dl_airline_data_fn = _lambda.Function(self, 
             "DlAirlineDataFn",
             runtime=_lambda.Runtime.PYTHON_3_7,
-            memory_size=1024,
+            memory_size= 1769, # Minimum memory that ensures one whole VCPU.
             timeout=cdk.Duration.minutes(15),
 
             handler="app.lambda_handler",
@@ -145,13 +145,15 @@ class DataPipelineStack(cdk.Stack):
         # tasks.
         airline_data_map = _sfn.Map(self,
             "AirlineDataMap",
-            items_path=_sfn.JsonPath.string_at("$.Payload.airline_jobs")
+            items_path=_sfn.JsonPath.string_at("$.Payload.airline_jobs"),
+            max_concurrency=1
         )
         airline_data_map.iterator(dl_airline_data_task)
 
         weather_data_map = _sfn.Map(self,
             "WeatherDataMap",
-            items_path=_sfn.JsonPath.string_at("$.Payload.weather_jobs")
+            items_path=_sfn.JsonPath.string_at("$.Payload.weather_jobs"),
+            max_concurrency=1
         )
         weather_data_map.iterator(dl_weather_data_task)
 
