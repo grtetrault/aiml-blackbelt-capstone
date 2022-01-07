@@ -1,26 +1,30 @@
 import os
 import io
-import time
 import json
 import boto3
 import base64
-import zipfile
 import requests
 import typing as _t
+import pandas as pd
+
+DIRNAME = os.path.dirname(__file__)
+OUTPUT_BUCKET = os.environ["OUTPUT_BUCKET"]
+OUTPUT_DIR = os.environ["OUTPUT_DIR"]
 
 RETRY_COUNT = int(os.environ["RETRY_COUNT"])
 RETRY_HEARTBEAT = int(os.environ["RETRY_HEARTBEAT"])
 
-OUTPUT_BUCKET = os.environ["OUTPUT_BUCKET"]
-OUTPUT_DIR = os.environ["OUTPUT_DIR"]
-
 
 def dl_airline_data(year: str, month: str) -> _t.Dict[str, str]:
 
-    s3 = boto3.resource("s3")
+    # Read in pandas data schema.
+    with open(os.path.join(DIRNAME, "pd_schema.json")) as f:
+        schema = json.load(f)
+    names = [col["name"] for col in schema["fields"]]
+    dtype = {i: col["type"] for i, col in enumerate(schema["fields"])}
 
     # Prep SQL query for data request.
-    query = f"SELECT * FROM t_ontime_reporting WHERE year={year} AND month={month}"
+    query = f"SELECT {','.join(names)} FROM t_ontime_reporting WHERE year={year} AND month={month}"
     encoded_query = base64.b64encode(query.encode()).decode("utf-8")
 
     # Make request for table data. Data is returned as a zip file.
@@ -42,26 +46,34 @@ def dl_airline_data(year: str, month: str) -> _t.Dict[str, str]:
         data=bts_request_data,
         verify=False)
 
-    # Unzip data file from downloaded data.
-    archive = zipfile.ZipFile(io.BytesIO(response.content))
-    data_member_suffix = "_T_ONTIME_REPORTING.csv"
-    data_member_name = next(
-        n for n in archive.namelist()
-        if n.endswith(data_member_suffix))
+    # Note that column names are set in query sent in the request above.
+    df = pd.read_csv(
+        io.BytesIO(response.content),
+        compression="zip",
+        index_col=False,
+        usecols=names,
+        dtype=dtype)
 
-    # For this dataset, the first row is either column names if specified in
-    # the SQL query, or an invalid line if selected all (as we are here).
-    header, data = archive.read(data_member_name).split(b"\n", maxsplit=1)
+    # Convert dataframe to parquet.
+    data = io.BytesIO()
+    df.to_parquet(data, index=False, compression=None)
+    data.seek(0)
 
-    # Write unzipped data to S3.
-    output_key = os.path.join(OUTPUT_DIR, f"bts_airline_ontime_{year}{month}.csv")
+    # Write to S3 using boto3 to avoid installing fsspec and s3fs. With these
+    # packages, the unzipped bundle is too large for Lambda to use.
+    # TODO: Look into smaller bundling methods to include these packages.
+    s3 = boto3.resource("s3")
+    filename = f"bts_airline_ontime_{year}{month}.parquet"
+    output_key = os.path.join(OUTPUT_DIR, filename)
     output_bucket_resource = s3.Bucket(OUTPUT_BUCKET)
-    output_bucket_resource.upload_fileobj(io.BytesIO(data), output_key)
+    output_bucket_resource.upload_fileobj(data, output_key)
 
     return {
         "status": "SUCCESS",
         "ouput_key": output_key
     }
+
+
 
 
 def lambda_handler(event, context):

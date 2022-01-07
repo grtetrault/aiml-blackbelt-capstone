@@ -1,0 +1,248 @@
+{
+    "fields": [
+        {
+            "name": "year",
+            "type": "int64"
+        },
+        {
+            "name": "quarter",
+            "type": "int64"
+        },
+        {
+            "name": "month",
+            "type": "int64"
+        },
+        {
+            "name": "day_of_month",
+            "type": "int64"
+        },
+        {
+            "name": "day_of_week",
+            "type": "int64"
+        },
+        {
+            "name": "fl_date",
+            "type": "object"
+        },
+        {
+            "name": "op_unique_carrier",
+            "type": "object"
+        },
+        {
+            "name": "op_carrier_airline_id",
+            "type": "int64"
+        },
+        {
+            "name": "op_carrier",
+            "type": "object"
+        },
+        {
+            "name": "tail_num",
+            "type": "object"
+        },
+        {
+            "name": "op_carrier_fl_num",
+            "type": "int64"
+        },
+        {
+            "name": "origin_airport_id",
+            "type": "int64"
+        },
+        {
+            "name": "origin_airport_seq_id",
+            "type": "int64"
+        },
+        {
+            "name": "origin_city_market_id",
+            "type": "int64"
+        },
+        {
+            "name": "origin",
+            "type": "object"
+        },
+        {
+            "name": "origin_city_name",
+            "type": "object"
+        },
+        {
+            "name": "origin_state_abr",
+            "type": "object"
+        },
+        {
+            "name": "origin_state_fips",
+            "type": "int64"
+        },
+        {
+            "name": "origin_state_nm",
+            "type": "object"
+        },
+        {
+            "name": "origin_wac",
+            "type": "int64"
+        },
+        {
+            "name": "dest_airport_id",
+            "type": "int64"
+        },
+        {
+            "name": "dest_airport_seq_id",
+            "type": "int64"
+        },
+        {
+            "name": "dest_city_market_id",
+            "type": "int64"
+        },
+        {
+            "name": "dest",
+            "type": "object"
+        },
+        {
+            "name": "dest_city_name",
+            "type": "object"
+        },
+        {
+            "name": "dest_state_abr",
+            "type": "object"
+        },
+        {
+            "name": "dest_state_fips",
+            "type": "int64"
+        },
+        {
+            "name": "dest_state_nm",
+            "type": "object"
+        },
+        {
+            "name": "dest_wac",
+            "type": "int64"
+        },
+        {
+            "name": "crs_dep_time",
+            "type": "int64"
+        },
+        {
+            "name": "dep_time",
+            "type": "float64"
+        },
+        {
+            "name": "dep_delay",
+            "type": "float64"
+        },
+        {
+            "name": "dep_delay_new",
+            "type": "float64"
+        },
+        {
+            "name": "dep_del15",
+            "type": "float64"
+        },
+        {
+            "name": "dep_delay_group",
+            "type": "float64"
+        },
+        {
+            "name": "dep_time_blk",
+            "type": "object"
+        },
+        {
+            "name": "taxi_out",
+            "type": "float64"
+        },
+        {
+            "name": "wheels_off",
+            "type": "float64"
+        },
+        {
+            "name": "wheels_on",
+            "type": "float64"
+        },
+        {
+            "name": "taxi_in",
+            "type": "float64"
+        },
+        {
+            "name": "crs_arr_time",
+            "type": "int64"
+        },
+        {
+            "name": "arr_time",
+            "type": "float64"
+        },
+        {
+            "name": "arr_delay",
+            "type": "float64"
+        },
+        {
+            "name": "arr_delay_new",
+            "type": "float64"
+        },
+        {
+            "name": "arr_del15",
+            "type": "float64"
+        },
+        {
+            "name": "arr_delay_group",
+            "type": "float64"
+        },
+        {
+            "name": "arr_time_blk",
+            "type": "object"
+        },
+        {
+            "name": "cancelled",
+            "type": "float64"
+        },
+        {
+            "name": "cancellation_code",
+            "type": "object"
+        },
+        {
+            "name": "diverted",
+            "type": "float64"
+        },
+        {
+            "name": "crs_elapsed_time",
+            "type": "float64"
+        },
+        {
+            "name": "actual_elapsed_time",
+            "type": "float64"
+        },
+        {
+            "name": "air_time",
+            "type": "float64"
+        },
+        {
+            "name": "flights",
+            "type": "float64"
+        },
+        {
+            "name": "distance",
+            "type": "float64"
+        },
+        {
+            "name": "distance_group",
+            "type": "int64"
+        },
+        {
+            "name": "carrier_delay",
+            "type": "float64"
+        },
+        {
+            "name": "weather_delay",
+            "type": "float64"
+        },
+        {
+            "name": "nas_delay",
+            "type": "float64"
+        },
+        {
+            "name": "security_delay",
+            "type": "float64"
+        },
+        {
+            "name": "late_aircraft_delay",
+            "type": "float64"
+        }
+    ]
+}

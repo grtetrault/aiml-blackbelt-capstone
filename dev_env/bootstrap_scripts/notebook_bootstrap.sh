@@ -4,7 +4,6 @@
 pip install ipywidgets
 jupyter nbextension enable --py widgetsnbextension
 jupyter labextension install @jupyter-widgets/jupyterlab-manager
-jupyter lab build
 
 # As the notebook depends on the cluster being created successfully in the
 # stack, we assume below that the cluster nodes have been provisioned.
@@ -43,6 +42,15 @@ cat > /home/ec2-user/.sparkmagic/config.json << EOL
     "username": "",
     "password": "",
     "url": "http://${master_ip_address}:8998"
+  },
+
+  "session_configs": {
+    "name":"remotesparkmagics-notebook", 
+    "kind": "pyspark3",
+    "conf": {
+      "spark.pyspark.python": "python3",
+      "spark.jars.packages": "ml.combust.mleap:mleap-spark_2.11:0.17.0"
+    }
   },
 
   "logging_config": {

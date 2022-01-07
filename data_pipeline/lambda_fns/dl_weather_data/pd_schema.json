@@ -1,0 +1,36 @@
+{
+    "fields": [
+        {
+            "name": "id",
+            "type": "object"
+        },
+        {
+            "name": "year_month_day",
+            "type": "object"
+        },
+        {
+            "name": "element",
+            "type": "object"
+        },
+        {
+            "name": "data_value",
+            "type": "float64"
+        },
+        {
+            "name": "measurement_flag",
+            "type": "object"
+        },
+        {
+            "name": "quality_flag",
+            "type": "object"
+        },
+        {
+            "name": "source_flag",
+            "type": "object"
+        },
+        {
+            "name": "obs_time",
+            "type": "object"
+        }
+    ]
+}

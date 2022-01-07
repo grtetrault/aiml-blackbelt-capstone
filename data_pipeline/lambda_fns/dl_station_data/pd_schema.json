@@ -1,0 +1,40 @@
+{
+    "fields": [
+        {
+            "name": "id",
+            "type": "object"
+        },
+        {
+            "name": "latitude",
+            "type": "float64"
+        },
+        {
+            "name": "longitude",
+            "type": "float64"
+        },
+        {
+            "name": "elevation",
+            "type": "float64"
+        },
+        {
+            "name": "state",
+            "type": "object"
+        },
+        {
+            "name": "name",
+            "type": "object"
+        },
+        {
+            "name": "gsn_flag",
+            "type": "object"
+        },
+        {
+            "name": "hcn_flag",
+            "type": "object"
+        },
+        {
+            "name": "wmo_id",
+            "type": "object"
+        }
+    ]
+}
