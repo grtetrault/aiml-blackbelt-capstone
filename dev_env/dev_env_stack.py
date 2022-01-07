@@ -66,9 +66,7 @@ class DevEnvironmentStack(cdk.Stack):
         )
 
         self.emr_log_bucket = _s3.Bucket(self,
-            "EMRLogBucket",
-            auto_delete_objects=True,
-            removal_policy=cdk.RemovalPolicy.DESTROY
+            "EMRLogBucket"
         )
 
 
@@ -77,16 +75,14 @@ class DevEnvironmentStack(cdk.Stack):
         
         self.vpc = _ec2.Vpc(self, 
             "Vpc",
-            cidr="10.0.0.0/16",
-            nat_gateways=0
+            nat_gateways=0,
+            subnet_configuration=[
+                _ec2.SubnetConfiguration(
+                    name="PublicSubnet", subnet_type=_ec2.SubnetType.PUBLIC
+                )
+            ]
         )
 
-        self.subnet = _ec2.PublicSubnet(self,
-            "Subnet",
-            availability_zone=cdk.Stack.of(self).availability_zones[0],
-            cidr_block="10.0.0.0/16",
-            vpc_id=self.vpc.vpc_id
-        )
 
         # _____________________________________________________________________
         #                                                       Security Groups
@@ -127,32 +123,32 @@ class DevEnvironmentStack(cdk.Stack):
             connection=_ec2.Port.tcp(443)
         )
 
+
         # _____________________________________________________________________
         #                                                    Roles and Policies
 
-        # TODO: Update EMR policy to V2 and restrict S3 permissions to data bucket.
-        # Roles for cluster and isntances.
+        # Roles for cluster and instances.
         self.emr_service_role = _iam.Role(self,
             "EmrServiceRole",
             assumed_by=_iam.ServicePrincipal("elasticmapreduce.amazonaws.com"),
             managed_policies=[
                 _iam.ManagedPolicy.from_aws_managed_policy_name(
-                    "service-role/AmazonEMRServicePolicy_v2"
+                    "service-role/AmazonElasticMapReduceRole"
                 )
             ]
         )
+        self.emr_log_bucket.grant_read_write(self.emr_service_role)
+        self.cluster_bootstrap_asset.grant_read(self.emr_service_role)
+
+        # Job flow profile (taking job flow role permissions) assumed by
+        # instances in cluster.
         self.emr_job_flow_role = _iam.Role(self,
             "EmrJobFlowRole",
-            assumed_by=_iam.ServicePrincipal("ec2.amazonaws.com"),
-            managed_policies=[
-                _iam.ManagedPolicy.from_aws_managed_policy_name(
-                    "service-role/AmazonElasticMapReduceforEC2Role"
-                )
-            ]
+            assumed_by=_iam.ServicePrincipal("ec2.amazonaws.com")
         )
         self.emr_log_bucket.grant_read_write(self.emr_job_flow_role)
+        self.cluster_bootstrap_asset.grant_read(self.emr_job_flow_role)
         dl_pipeline_output_bucket.grant_read_write(self.emr_job_flow_role)
-        # Allow read write access to data bucket and to assets (schemas).
 
         self.emr_job_flow_profile = _iam.CfnInstanceProfile(self,
             "EmrJobFlowProfile",
@@ -197,7 +193,7 @@ class DevEnvironmentStack(cdk.Stack):
 
             instances=_emr.CfnCluster.JobFlowInstancesConfigProperty(
                 hadoop_version="Amazon",
-                ec2_subnet_id=self.subnet.subnet_id,
+                ec2_subnet_id=self.vpc.public_subnets[0].subnet_id,
                 keep_job_flow_alive_when_no_steps=True,
                 additional_master_security_groups=[self.additional_master_sg.security_group_id],
                 
@@ -287,7 +283,7 @@ class DevEnvironmentStack(cdk.Stack):
             ]
         )
                 
-        notebook = _sagemaker.CfnNotebookInstance(self, 
+        self.notebook = _sagemaker.CfnNotebookInstance(self, 
             "NotebookInstance",
             notebook_instance_name=notebook_name,
             role_arn=self.notebook_service_role.role_arn,
@@ -295,10 +291,10 @@ class DevEnvironmentStack(cdk.Stack):
 
             # default_code_repository=code_repository,
             security_group_ids=[self.notebook_sg.security_group_id],
-            subnet_id=self.subnet.subnet_id,
+            subnet_id=self.vpc.public_subnets[0].subnet_id,
 
             instance_type=notebook_instance_type,
             platform_identifier="notebook-al2-v1",
             volume_size_in_gb=notebook_volume_size
         )
-        notebook.node.add_dependency(self.cluster)
+        self.notebook.node.add_dependency(self.cluster)

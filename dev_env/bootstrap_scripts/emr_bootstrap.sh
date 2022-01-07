@@ -1,5 +1,4 @@
 #!/bin/bash
-
 sudo yum update -y && sudo yum upgrade -y  
 sudo yum install -y python-devel python3-devel libjpeg-devel
 

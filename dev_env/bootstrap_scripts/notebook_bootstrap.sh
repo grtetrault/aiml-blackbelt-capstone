@@ -1,4 +1,8 @@
 #!/bin/bash
+# Add environment variables to conda environment.
+touch /home/ec2-user/anaconda3/envs/python3/etc/conda/activate.d/env_vars.sh
+echo "export DATA_BUCKET='${DATA_BUCKET}'" >> /home/ec2-user/anaconda3/envs/python3/etc/conda/activate.d/env_vars.sh
+echo "export CLUSTER_ID='${CLUSTER_ID}'" >> /home/ec2-user/anaconda3/envs/python3/etc/conda/activate.d/env_vars.sh
 
 # Required to use widgets with Jupyter.
 pip install ipywidgets
