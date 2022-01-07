@@ -2,23 +2,23 @@
     "fields": [
         {
             "name": "year",
-            "type": "int64"
+            "type": "Int64"
         },
         {
             "name": "quarter",
-            "type": "int64"
+            "type": "Int64"
         },
         {
             "name": "month",
-            "type": "int64"
+            "type": "Int64"
         },
         {
             "name": "day_of_month",
-            "type": "int64"
+            "type": "Int64"
         },
         {
             "name": "day_of_week",
-            "type": "int64"
+            "type": "Int64"
         },
         {
             "name": "fl_date",
@@ -30,7 +30,7 @@
         },
         {
             "name": "op_carrier_airline_id",
-            "type": "int64"
+            "type": "object"
         },
         {
             "name": "op_carrier",
@@ -42,19 +42,19 @@
         },
         {
             "name": "op_carrier_fl_num",
-            "type": "int64"
+            "type": "Int64"
         },
         {
             "name": "origin_airport_id",
-            "type": "int64"
+            "type": "object"
         },
         {
             "name": "origin_airport_seq_id",
-            "type": "int64"
+            "type": "object"
         },
         {
             "name": "origin_city_market_id",
-            "type": "int64"
+            "type": "object"
         },
         {
             "name": "origin",
@@ -70,7 +70,7 @@
         },
         {
             "name": "origin_state_fips",
-            "type": "int64"
+            "type": "object"
         },
         {
             "name": "origin_state_nm",
@@ -78,19 +78,19 @@
         },
         {
             "name": "origin_wac",
-            "type": "int64"
+            "type": "object"
         },
         {
             "name": "dest_airport_id",
-            "type": "int64"
+            "type": "object"
         },
         {
             "name": "dest_airport_seq_id",
-            "type": "int64"
+            "type": "object"
         },
         {
             "name": "dest_city_market_id",
-            "type": "int64"
+            "type": "object"
         },
         {
             "name": "dest",
@@ -106,7 +106,7 @@
         },
         {
             "name": "dest_state_fips",
-            "type": "int64"
+            "type": "object"
         },
         {
             "name": "dest_state_nm",
@@ -114,11 +114,11 @@
         },
         {
             "name": "dest_wac",
-            "type": "int64"
+            "type": "object"
         },
         {
             "name": "crs_dep_time",
-            "type": "int64"
+            "type": "Int64"
         },
         {
             "name": "dep_time",
@@ -162,7 +162,7 @@
         },
         {
             "name": "crs_arr_time",
-            "type": "int64"
+            "type": "Int64"
         },
         {
             "name": "arr_time",
@@ -222,7 +222,7 @@
         },
         {
             "name": "distance_group",
-            "type": "int64"
+            "type": "Int64"
         },
         {
             "name": "carrier_delay",
