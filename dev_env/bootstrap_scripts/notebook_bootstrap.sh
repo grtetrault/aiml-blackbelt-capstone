@@ -1,8 +1,13 @@
 #!/bin/bash
-# Add environment variables to conda environment.
-touch /home/ec2-user/anaconda3/envs/python3/etc/conda/activate.d/env_vars.sh
-echo "export DATA_BUCKET='${DATA_BUCKET}'" >> /home/ec2-user/anaconda3/envs/python3/etc/conda/activate.d/env_vars.sh
-echo "export CLUSTER_ID='${CLUSTER_ID}'" >> /home/ec2-user/anaconda3/envs/python3/etc/conda/activate.d/env_vars.sh
+
+# Store data in easily accesible location.
+mkdir /home/ec2-user/.aiml-bb
+cat > /home/ec2-user/.aiml-bb/stack-data.json << EOF
+{
+  "data_bucket": "${DATA_BUCKET}",
+  "cluster_id": "${CLUSTER_ID}"
+}
+EOF
 
 # Required to use widgets with Jupyter.
 pip install ipywidgets
@@ -27,7 +32,7 @@ master_ip_address=$(aws emr list-instances  \
     --output text)
 echo Master node private IP: $master_ip_address
 
-cat > /home/ec2-user/.sparkmagic/config.json << EOL
+cat > /home/ec2-user/.sparkmagic/config.json << EOF
 {
   "kernel_python_credentials" : {
     "username": "",
@@ -109,4 +114,4 @@ cat > /home/ec2-user/.sparkmagic/config.json << EOL
   "retry_seconds_to_sleep_list": [0.2, 0.5, 1, 3, 5],
   "configurable_retry_policy_max_retries": 8
 }
-EOL
+EOF

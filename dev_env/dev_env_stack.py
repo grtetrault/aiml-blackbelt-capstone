@@ -75,12 +75,7 @@ class DevEnvironmentStack(cdk.Stack):
         
         self.vpc = _ec2.Vpc(self, 
             "Vpc",
-            nat_gateways=0,
-            subnet_configuration=[
-                _ec2.SubnetConfiguration(
-                    name="PublicSubnet", subnet_type=_ec2.SubnetType.PUBLIC
-                )
-            ]
+            nat_gateways=0
         )
 
 
@@ -106,6 +101,7 @@ class DevEnvironmentStack(cdk.Stack):
             description="Livy Port"
         )
 
+        # Open up notebook to public net.
         self.notebook_sg.add_ingress_rule(
             peer=_ec2.Peer.any_ipv4(), 
             connection=_ec2.Port.tcp(80)
@@ -127,7 +123,8 @@ class DevEnvironmentStack(cdk.Stack):
         # _____________________________________________________________________
         #                                                    Roles and Policies
 
-        # Roles for cluster and instances.
+        # Roles for cluster setup and services, NOT for instances within
+        # cluster.
         self.emr_service_role = _iam.Role(self,
             "EmrServiceRole",
             assumed_by=_iam.ServicePrincipal("elasticmapreduce.amazonaws.com"),
@@ -137,14 +134,26 @@ class DevEnvironmentStack(cdk.Stack):
                 )
             ]
         )
-        self.emr_log_bucket.grant_read_write(self.emr_service_role)
-        self.cluster_bootstrap_asset.grant_read(self.emr_service_role)
 
         # Job flow profile (taking job flow role permissions) assumed by
         # instances in cluster.
         self.emr_job_flow_role = _iam.Role(self,
             "EmrJobFlowRole",
-            assumed_by=_iam.ServicePrincipal("ec2.amazonaws.com")
+            assumed_by=_iam.ServicePrincipal("ec2.amazonaws.com"),
+            inline_policies=[
+                _iam.PolicyDocument(
+                    statements=[
+                        _iam.PolicyStatement(
+                            actions=[
+                                "s3:GetObject"
+                            ],
+                            resources=[
+                                "arn:aws:s3:::elasticmapreduce/bootstrap-actions/*"
+                            ]
+                        )
+                    ]
+                )
+            ]
         )
         self.emr_log_bucket.grant_read_write(self.emr_job_flow_role)
         self.cluster_bootstrap_asset.grant_read(self.emr_job_flow_role)
@@ -216,6 +225,14 @@ class DevEnvironmentStack(cdk.Stack):
             ],
 
             bootstrap_actions=[
+                # For more on AWS' log4j mitigation strategy for EMR see:
+                # https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-log4j-vulnerability.html
+                _emr.CfnCluster.BootstrapActionConfigProperty(
+                    name="log4j-mitigation",
+                    script_bootstrap_action=_emr.CfnCluster.ScriptBootstrapActionConfigProperty(
+                        path="s3://elasticmapreduce/bootstrap-actions/log4j/patch-log4j-emr-5.30.2-v1.sh"
+                    )
+                ),
                 _emr.CfnCluster.BootstrapActionConfigProperty(
                     name="cluster-bootstrap",
                     script_bootstrap_action=_emr.CfnCluster.ScriptBootstrapActionConfigProperty(
@@ -269,15 +286,13 @@ class DevEnvironmentStack(cdk.Stack):
         # Configure notebook instance bootstrap script.
         self.notebook_lifecycle_config = _sagemaker.CfnNotebookInstanceLifecycleConfig(self,
             "NotebookLifecycleConfig",
-            on_create=[
+            on_start=[
                 _sagemaker.CfnNotebookInstanceLifecycleConfig.NotebookInstanceLifecycleHookProperty(
                     content=cdk.Fn.base64(
-                        "#!/bin/bash\n"
-                        f"export DATA_BUCKET={dl_pipeline_output_bucket.bucket_name}\n"
-                        f"export CLUSTER_ID={self.cluster.ref}\n"
+                        f"export DATA_BUCKET='{dl_pipeline_output_bucket.bucket_name}'\n"
+                        f"export CLUSTER_ID='{self.cluster.ref}'\n"
                         f"aws s3 cp {self.notebook_bootstrap_asset.s3_object_url} ./bootstrap.sh\n"
-                        "bash bootstrap.sh\n"
-                        "rm bootstrap.sh"
+                        "bash bootstrap.sh && rm bootstrap.sh"
                     )
                 )
             ]
@@ -287,11 +302,19 @@ class DevEnvironmentStack(cdk.Stack):
             "NotebookInstance",
             notebook_instance_name=notebook_name,
             role_arn=self.notebook_service_role.role_arn,
-            lifecycle_config_name=self.notebook_lifecycle_config.get_att("NotebookInstanceLifecycleConfigName").to_string(),
+            lifecycle_config_name=(
+                self.notebook_lifecycle_config.get_att(
+                    "NotebookInstanceLifecycleConfigName"
+                ).to_string()
+            ),
 
             # default_code_repository=code_repository,
             security_group_ids=[self.notebook_sg.security_group_id],
-            subnet_id=self.vpc.public_subnets[0].subnet_id,
+
+            # Specify using the cluster's subnet directly. Referencing the 
+            # subnet in the same manner as above (in cluster creation) creates
+            # a distinct subnet for the notebook.
+            subnet_id=self.cluster.instances.ec2_subnet_id,
 
             instance_type=notebook_instance_type,
             platform_identifier="notebook-al2-v1",
