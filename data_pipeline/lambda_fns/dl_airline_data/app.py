@@ -54,6 +54,11 @@ def dl_airline_data(year: str, month: str) -> _t.Dict[str, str]:
         usecols=names,
         dtype=dtype)
 
+    if len(df) == 0:
+        return {
+        "status": "NO_DATA"
+    }
+
     # Convert dataframe to parquet.
     data = io.BytesIO()
     df.to_parquet(data, index=False, compression=None)

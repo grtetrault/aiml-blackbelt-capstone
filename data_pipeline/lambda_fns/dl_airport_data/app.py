@@ -20,19 +20,12 @@ def dl_station_data() -> _t.Dict[str, str]:
     dtype = {i: col["type"] for i, col in enumerate(schema["fields"])}
 
     # Make request for table data. Data is returned as a fixed-width text file.
-    noaa_fqdn = "https://www1.ncdc.noaa.gov"
-    response = requests.get(
-        f"{noaa_fqdn}/pub/data/ghcn/daily/ghcnd-stations.txt")
-
-    # Infer columns on spacing of all rows. This is not generally recommended,
-    # but the file is known to be small enough to fit in memory.
-    nrows = response.content.count(b"\n")
-    df = pd.read_fwf(
-        io.BytesIO(response.content), 
-        index_col=False,
+    gh_content_fqdn = "https://raw.githubusercontent.com"
+    df = pd.read_csv(
+        f"{gh_content_fqdn}/jpatokal/openflights/master/data/airports.dat", 
+        index_col=None,
         names=names,
-        dtype=dtype,
-        infer_nrows=nrows)
+        dtype=dtype)
 
     if len(df) == 0:
         return {
@@ -47,7 +40,7 @@ def dl_station_data() -> _t.Dict[str, str]:
     # Write to S3 using boto3 to avoid installing fsspec and s3fs. With these
     # packages, the unzipped bundle is too large for Lambda to use.
     s3 = boto3.resource("s3")
-    filename = "noaa_stations.parquet"
+    filename = "airports.parquet"
     output_key = os.path.join(OUTPUT_DIR, filename)
     output_bucket_resource = s3.Bucket(OUTPUT_BUCKET)
     output_bucket_resource.upload_fileobj(data, output_key)

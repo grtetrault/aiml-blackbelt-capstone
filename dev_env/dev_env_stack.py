@@ -276,12 +276,12 @@ class DevEnvironmentStack(cdk.Stack):
         #______________________________________________________________________
         #                                           Sagemaker Notebook Instance
 
-        # code_repository = _sagemaker.CfnCodeRepository(self, "CodeRepository",
-        #     code_repository_name=f"{sm_notebook_name}_repository",
-        #     git_config=_sagemaker.CfnCodeRepository.GitConfigProperty(
-        #         repository_url="repositoryUrl", # TODO enter git repository.
-        #     )
-        # )
+        code_repository = _sagemaker.CfnCodeRepository(self, "CodeRepository",
+            code_repository_name=f"{notebook_name}-Repository",
+            git_config=_sagemaker.CfnCodeRepository.GitConfigProperty(
+                repository_url="https://github.com/grtetrault/aiml-blackbelt-capstone.git",
+            )
+        )
 
         # Configure notebook instance bootstrap script.
         self.notebook_lifecycle_config = _sagemaker.CfnNotebookInstanceLifecycleConfig(self,
@@ -308,7 +308,7 @@ class DevEnvironmentStack(cdk.Stack):
                 ).to_string()
             ),
 
-            # default_code_repository=code_repository,
+            default_code_repository=code_repository.code_repository_name,
             security_group_ids=[self.notebook_sg.security_group_id],
 
             # Specify using the cluster's subnet directly. Referencing the 

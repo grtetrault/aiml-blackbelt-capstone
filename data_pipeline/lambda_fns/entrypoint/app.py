@@ -15,12 +15,14 @@ def current_month_jobs() -> _t.Dict[str, str]:
         {"year": f"{today.year:04}"}
     ]
     update_station_data = "TRUE"
+    update_airport_data = "TRUE"
 
     return {
         "airline_jobs": airline_jobs,
         "weather_jobs": weather_jobs,
-        "update_station_data": update_station_data
-    }
+        "update_station_data": update_station_data,
+        "update_airport_data": update_airport_data
+    }   
 
 
 def historic_jobs() -> _t.Dict[str, str]:
@@ -48,11 +50,13 @@ def historic_jobs() -> _t.Dict[str, str]:
         for year in unique_years
     ]
     update_station_data = "TRUE"
+    update_airport_data = "TRUE"
 
     return {
         "airline_jobs": airline_jobs,
         "weather_jobs": weather_jobs,
-        "update_station_data": update_station_data
+        "update_station_data": update_station_data,
+        "update_airport_data": update_airport_data
     }
     
 
@@ -89,6 +93,7 @@ def lambda_handler(event, context):
                 ...
             ],
             "update_station_data": TRUE|FALSE
+            "update_airport_data": TRUE|FALSE
         }
     """
     

@@ -28,6 +28,11 @@ def dl_weather_data(year: str) -> _t.Dict[str, str]:
         names=names,
         dtype=dtype)
 
+    if len(df) == 0:
+        return {
+        "status": "NO_DATA"
+    }
+
     # Convert dataframe to parquet.
     data = io.BytesIO()
     df.to_parquet(data, index=False, compression=None)

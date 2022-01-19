@@ -1,0 +1,60 @@
+{
+    "fields": [
+        {
+            "name": "id",
+            "type": "object"
+        },
+        {
+            "name": "name",
+            "type": "object"
+        },
+        {
+            "name": "city",
+            "type": "object"
+        },
+        {
+            "name": "country",
+            "type": "object"
+        },
+        {
+            "name": "iata",
+            "type": "object"
+        },
+        {
+            "name": "icao",
+            "type": "object"
+        },
+        {
+            "name": "latitude",
+            "type": "float64"
+        },
+        {
+            "name": "longitude",
+            "type": "float64"
+        },
+        {
+            "name": "elevation",
+            "type": "float64"
+        },
+        {
+            "name": "utc_offset",
+            "type": "object"
+        },
+        {
+            "name": "dst",
+            "type": "object"
+        },
+        {
+            "name": "tz",
+            "type": "object"
+        },
+        {
+            "name": "type",
+            "type": "object"
+        },
+        {
+            "name": "source",
+            "type": "object"
+        }
+    ]
+}
