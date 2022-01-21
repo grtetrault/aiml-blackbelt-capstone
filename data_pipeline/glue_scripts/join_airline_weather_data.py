@@ -28,7 +28,7 @@ airline_tbl = "airline_data"
 weather_tbl = "weather_data"
 station_tbl = "station_data"
 airport_tbl = "airport_data"
-
+     
 # Destination for fully joined dataframe.
 etl_output_loc = f"s3://{output_bucket}/etl_output/joined_airline_weather_data"
 
@@ -39,9 +39,9 @@ station_dyf = glueContext.create_dynamic_frame.from_catalog(database=glue_db, ta
 airport_dyf = glueContext.create_dynamic_frame.from_catalog(database=glue_db, table_name=airport_tbl)
 
 airline_df = airline_dyf.toDF()
-weather_df = weather_dyf.toDF().repartition("id")
-station_df = station_dyf.toDF().repartition("id")
-airport_df = airport_dyf.toDF().repartition("iata")
+weather_df = weather_dyf.toDF()
+station_df = station_dyf.toDF()
+airport_df = airport_dyf.toDF()
 
 def geo_distance(lat1, long1, lat2, long2):
     """
@@ -66,7 +66,7 @@ n_nearest_stations = 5
 # Join station data to airport data by geographically closest station.
 iata_window = (
     sql.window.Window
-    .partitionBy("iata")
+    .partitionBy(*airport_df.columns)
     .orderBy(F.col("geo_distance").asc())
 )
 airport_station_df = (
@@ -161,17 +161,12 @@ weather_pivot_df = (
 
 # Join weather data to airlines by closest in range station for each date. Note
 # that this must be done for each flight's orgin and destination.
-origin_window = (
+airline_window = (
     sql.window.Window
-    .partitionBy("origin_station_id")
-    .orderBy(F.col("origin_geo_distance").asc())
+    .partitionBy(*geo_airline_df.columns)
+    .orderBy(F.col("geo_distance").asc())
 )
 
-dest_window = (
-    sql.window.Window
-    .partitionBy("dest_station_id")
-    .orderBy(F.col("dest_geo_distance").asc())
-)
 
 airline_weather_df = (
     geo_airline_df
@@ -193,15 +188,16 @@ airline_weather_df = (
         ),
         how="left"
     )
-    .withColumn("origin_geo_distance", 
+    .withColumn("geo_distance", 
         geo_distance(
             F.col("origin_latitude"), F.col("origin_longitude"), 
             F.col("origin_station_latitude"), F.col("origin_station_longitude")
         )
     )
-    .withColumn("row_number", F.row_number().over(origin_window))
+    .withColumn("row_number", F.row_number().over(airline_window))
     .filter(F.col("row_number") == 1)
     .drop("row_number")
+    .withColumnRenamed("geo_distance", "origin_geo_distance")
 
     # Apply same join operation as above to destination.
     .join(
@@ -222,15 +218,16 @@ airline_weather_df = (
         ),
         how="left"
     )
-    .withColumn("dest_geo_distance", 
+    .withColumn("geo_distance", 
         geo_distance(
             F.col("dest_latitude"), F.col("dest_longitude"), 
             F.col("dest_station_latitude"), F.col("dest_station_longitude")
         )
     )
-    .withColumn("row_number", F.row_number().over(dest_window))
+    .withColumn("row_number", F.row_number().over(airline_window))
     .filter(F.col("row_number") == 1)
     .drop("row_number")
+    .withColumnRenamed("geo_distance", "dest_geo_distance")
 )
 
 # Turn result back into a dynamic frame.
