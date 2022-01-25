@@ -28,6 +28,8 @@ airline_tbl = "airline_data"
 weather_tbl = "weather_data"
 station_tbl = "station_data"
 airport_tbl = "airport_data"
+
+
      
 # Destination for fully joined dataframe.
 etl_output_loc = f"s3://{output_bucket}/etl_output/joined_airline_weather_data"

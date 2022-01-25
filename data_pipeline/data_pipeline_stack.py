@@ -121,7 +121,7 @@ class DataPipelineStack(cdk.Stack):
             environment={
                 "RETRY_COUNT": "10",
                 "RETRY_HEARTBEAT": "1",
-                "OUTPUT_BUCKET": self.dl_output_bucket.bucket_name,
+                "OUTPUT_BUCKET":  self.dl_output_bucket.bucket_name,
                 "OUTPUT_DIR": "dl_output/airline_data"
             }
         )
@@ -147,7 +147,7 @@ class DataPipelineStack(cdk.Stack):
                 )
             ),
             environment={
-                "OUTPUT_BUCKET": self.dl_output_bucket.bucket_name,
+                "OUTPUT_BUCKET":  self.dl_output_bucket.bucket_name,
                 "OUTPUT_DIR": "dl_output/weather_data"
             }
         )
@@ -173,7 +173,7 @@ class DataPipelineStack(cdk.Stack):
                 )
             ),
             environment={
-                "OUTPUT_BUCKET": self.dl_output_bucket.bucket_name,
+                "OUTPUT_BUCKET":  self.dl_output_bucket.bucket_name,
                 "OUTPUT_DIR": "dl_output/station_data"
             }
         )
@@ -199,7 +199,7 @@ class DataPipelineStack(cdk.Stack):
                 )
             ),
             environment={
-                "OUTPUT_BUCKET": self.dl_output_bucket.bucket_name,
+                "OUTPUT_BUCKET":  self.dl_output_bucket.bucket_name,
                 "OUTPUT_DIR": "dl_output/airport_data"
             }
         )
@@ -224,7 +224,7 @@ class DataPipelineStack(cdk.Stack):
             targets=_glue.CfnCrawler.TargetsProperty(
                 s3_targets=[
                     _glue.CfnCrawler.S3TargetProperty(
-                        path=f"s3://{self.dl_output_bucket.bucket_name}/dl_output"
+                        path=f"s3://{ self.dl_output_bucket.bucket_name}/dl_output"
                     )
                 ]
             ),
@@ -243,7 +243,7 @@ class DataPipelineStack(cdk.Stack):
             ),
             default_arguments={
                 "--dl_output_glue_db": self.database.ref, 
-                "--etl_output_bucket": self.dl_output_bucket.bucket_name
+                "--etl_data_bucket":  self.dl_output_bucket.bucket_name
             },
             timeout=(60 * 24) # minutes.
         )

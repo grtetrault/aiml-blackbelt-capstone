@@ -15,8 +15,8 @@ dev_environment_stack = DevEnvironmentStack(app,
     dl_pipeline_output_bucket=data_pipeline_stack.dl_output_bucket,
 
     cluster_name="AIML-Blackbelt-DevCluster",
-    cluster_instance_type="m5.xlarge",
-    core_instance_count=2,
+    cluster_instance_type="r5.xlarge",
+    core_instance_count=4,
 
     notebook_name="AIML-Blackbelt-DevNotebook",
     notebook_instance_type="ml.t3.large",
