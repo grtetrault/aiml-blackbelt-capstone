@@ -3,6 +3,7 @@ sudo yum update -y && sudo yum upgrade -y
 sudo yum install -y python-devel python3-devel libjpeg-devel
 
 sudo python3 -m pip install \
+    boto3                   \
     pandas==1.1.5           \
     pyarrow==4.0.1          \
     scipy==1.5.2            \

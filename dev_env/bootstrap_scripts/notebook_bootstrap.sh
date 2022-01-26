@@ -5,6 +5,7 @@ mkdir /home/ec2-user/.aiml-bb
 cat > /home/ec2-user/.aiml-bb/stack-data.json << EOF
 {
   "data_bucket": "${DATA_BUCKET}",
+  "model_bucket": "${MODEL_BUCKET}",
   "cluster_id": "${CLUSTER_ID}"
 }
 EOF

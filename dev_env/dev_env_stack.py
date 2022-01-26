@@ -155,6 +155,7 @@ class DevEnvironmentStack(cdk.Stack):
                 )
             ]
         )
+        self.model_bucket.grant_read_write(self.emr_job_flow_role)
         self.emr_log_bucket.grant_read_write(self.emr_job_flow_role)
         self.cluster_bootstrap_asset.grant_read(self.emr_job_flow_role)
         dl_pipeline_output_bucket.grant_read_write(self.emr_job_flow_role)
@@ -269,6 +270,13 @@ class DevEnvironmentStack(cdk.Stack):
                         "maximizeResourceAllocation": "true"
                     }
                 ),
+                # Increase the time for which the session is active.
+                _emr.CfnCluster.ConfigurationProperty(
+                    classification="livy-conf",
+                    configuration_properties={
+                        "livy.server.session.timeout": "12h"
+                    }
+                )
             ]
         )
 
@@ -290,6 +298,7 @@ class DevEnvironmentStack(cdk.Stack):
                 _sagemaker.CfnNotebookInstanceLifecycleConfig.NotebookInstanceLifecycleHookProperty(
                     content=cdk.Fn.base64(
                         f"export DATA_BUCKET='{dl_pipeline_output_bucket.bucket_name}'\n"
+                        f"export MODEL_BUCKET='{self.model_bucket.bucket_name}'\n"
                         f"export CLUSTER_ID='{self.cluster.ref}'\n"
                         f"aws s3 cp {self.notebook_bootstrap_asset.s3_object_url} ./bootstrap.sh\n"
                         "bash bootstrap.sh && rm bootstrap.sh"
