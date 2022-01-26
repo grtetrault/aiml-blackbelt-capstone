@@ -184,6 +184,7 @@ class DevEnvironmentStack(cdk.Stack):
         )
         self.notebook_bootstrap_asset.grant_read(self.notebook_service_role)
         self.model_bucket.grant_read_write(self.notebook_service_role)
+        dl_pipeline_output_bucket.grant_read_write(self.notebook_service_role)
 
 
         # _____________________________________________________________________
