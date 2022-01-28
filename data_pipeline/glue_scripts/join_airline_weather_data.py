@@ -169,7 +169,6 @@ airline_window = (
     .orderBy(F.col("geo_distance").asc())
 )
 
-
 airline_weather_df = (
     geo_airline_df
     .join(
@@ -234,6 +233,9 @@ airline_weather_df = (
 
 # Turn result back into a dynamic frame.
 airline_weather_dyf = DynamicFrame.fromDF(airline_weather_df, glueContext, "airline_weather_data")
+
+# Purge destination to remove stale data.
+glueContext.purge_s3_path(etl_output_loc)
 
 # Write out newly created dynamic frame in Parquet.
 glueContext.write_dynamic_frame.from_options(

@@ -95,9 +95,12 @@ class DataPipelineStack(cdk.Stack):
                 os.path.join(DIRNAME, "lambda_fns/entrypoint/")
             ),
             environment={
-                "MIN_YYYYMM": "201101"
+                "MIN_YYYYMM": "201101",
+                "OUTPUT_BUCKET":  self.dl_output_bucket.bucket_name,
+                "OUTPUT_DIR": "dl_output/airline_data"
             }
         )
+        self.dl_output_bucket.grant_read(self.entrypoint_fn)
 
         self.dl_airline_data_fn = _lambda.Function(self, 
             "DlAirlineDataFn",
@@ -367,7 +370,7 @@ class DataPipelineStack(cdk.Stack):
             _targets.SfnStateMachine(
                 self.state_machine, 
                 input=_events.RuleTargetInput.from_object(
-                    {"data_pull_type": "CURRENT_MONTH"}
+                    {"data_pull_type": "FILL_MISSING"}
                 )
             )
         )
