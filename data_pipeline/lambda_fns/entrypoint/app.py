@@ -32,7 +32,10 @@ def fill_missing_jobs() -> _t.Dict[str, str]:
         Prefix=OUTPUT_DIR
     )
     for obj in list_objs_response["Contents"]:
-        yyyymm = re.match(r"bts_airline_ontime_([0-9]{6}).parquet", obj["Key"]).group(1)
+        yyyymm = re.match(
+            f"{OUTPUT_DIR}/bts_airline_ontime_([0-9]{{6}}).parquet", 
+            obj["Key"]
+        ).group(1)
         obj_month_start = dt.datetime.strptime(yyyymm, "%Y%m")
         obj_year_month = (obj_month_start.year, obj_month_start.month)
         unique_month_starts.discard(obj_year_month) 
