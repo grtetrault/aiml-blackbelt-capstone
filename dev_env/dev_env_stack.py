@@ -211,7 +211,7 @@ class DevEnvironmentStack(cdk.Stack):
                 core_instance_group=_emr.CfnCluster.InstanceGroupConfigProperty(
                     instance_count=core_instance_count, 
                     instance_type=cluster_instance_type, 
-                    market="ON_DEMAND"
+                    market="SPOT" # Use Spot for core node to reduce costs.
                 ),
                 master_instance_group=_emr.CfnCluster.InstanceGroupConfigProperty(
                     instance_count=1, 
