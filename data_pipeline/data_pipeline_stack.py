@@ -246,7 +246,7 @@ class DataPipelineStack(cdk.Stack):
             ),
             default_arguments={
                 "--dl_output_glue_db": self.database.ref, 
-                "--etl_data_bucket":  self.dl_output_bucket.bucket_name
+                "--etl_output_bucket":  self.dl_output_bucket.bucket_name
             },
             timeout=(60 * 24) # minutes.
         )
@@ -304,6 +304,10 @@ class DataPipelineStack(cdk.Stack):
         self.etl_job_sync_task = _tasks.GlueStartJobRun(self,
             "ETLJobSyncTask",
             glue_job_name=self.etl_job.ref,
+            arguments=_sfn.TaskInput.from_object({
+                "dl_output_glue_db": self.database.ref,
+                "etl_output_bucket": self.dl_output_bucket.bucket_name
+            }),
             heartbeat=cdk.Duration.minutes(5)
         )
 
